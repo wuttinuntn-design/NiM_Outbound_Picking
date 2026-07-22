@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Outbound Picking - DC7171</title>
+
+<!-- PWA: installable on Android/iOS home screen -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F6E56">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Picking">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+<style>
+  :root{
+    --teal-50:#E1F5EE; --teal-100:#9FE1CB; --teal-400:#1D9E75; --teal-600:#0F6E56; --teal-800:#085041; --teal-900:#04342C;
+    --bg:#F5F6F5; --card:#FFFFFF; --border:#E1E3E0; --text:#1A1D1B; --text-2:#5F6560; --text-muted:#8B9089;
+    --danger:#C1352C; --danger-bg:#FBEAE8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); -webkit-tap-highlight-color:transparent; font-size:16px;
+  }
+  .app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--card); position:relative;}
+  .header{background:var(--teal-600); color:#fff; padding:18px 18px 22px;}
+  .header-top{display:flex; align-items:center; gap:10px;}
+  .logo-box{width:46px; height:46px; border-radius:12px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .logo-box i{font-size:26px;}
+  .header-title{font-size:19px; font-weight:600;}
+  .header-sub{font-size:14px; opacity:0.85;}
+  .content{padding:18px 18px 90px;}
+  label.field-label{font-size:15px; color:var(--text-2); display:flex; align-items:center; gap:6px; margin-bottom:8px; font-weight:500;}
+  input[type=date], input[type=text]{
+    width:100%; height:50px; border:1px solid var(--border); border-radius:10px; padding:0 14px;
+    font-size:17px; background:#fff; color:var(--text); margin-bottom:20px;
+  }
+  .zone-card{
+    display:flex; align-items:center; gap:14px; padding:16px; border:1px solid var(--border);
+    border-radius:12px; background:#fff; margin-bottom:10px; cursor:pointer;
+  }
+  .zone-card:active{background:#F0F1EF;}
+  .zone-icon{width:46px; height:46px; border-radius:10px; background:var(--teal-50); color:var(--teal-800); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .zone-icon i{font-size:22px;}
+  .zone-name{font-weight:600; font-size:17px;}
+  .zone-meta{font-size:13px; color:var(--text-2); margin-top:3px;}
+  .zone-chevron{color:var(--text-muted); font-size:20px;}
+  .zone-card-body{flex:1; min-width:0;}
+  .zone-top-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px;}
+  .zone-badge{font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; flex-shrink:0;}
+  .zone-badge.notstarted{background:var(--bg); color:var(--text-2);}
+  .zone-badge.inprogress{background:var(--teal-50); color:var(--teal-800);}
+  .zone-badge.done{background:var(--teal-600); color:#fff;}
+  .zone-progress-track{height:6px; background:var(--bg); border-radius:4px; overflow:hidden; margin-top:8px;}
+  .zone-progress-fill{height:100%; background:var(--teal-400);}
+  .zone-card.warning{border-color:#F0D9B5; background:#FFFBF3;}
+  .zone-card.warning .zone-icon{background:#FDF3E7; color:#8A5A0F;}
+  .zone-badge.warning{background:#FDF3E7; color:#8A5A0F;}
+  .zone-card.disabled{cursor:default;}
+  .zone-card.disabled:active{background:#FFFBF3;}
+  .zone-chevron.warning-icon{color:#C98A1F;}
+  .summary-card{background:var(--teal-50); border-radius:12px; padding:16px; margin-bottom:18px;}
+  .summary-top{display:flex; justify-content:space-between; font-size:14px; color:var(--teal-800); font-weight:600; margin-bottom:8px;}
+  .progress-track{height:7px; background:#fff; border-radius:4px; overflow:hidden;}
+  .progress-fill{height:100%; background:var(--teal-400);}
+  .worker-pill{display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--bg); border-radius:10px; font-size:14px; color:var(--text-2);}
+  #workerName{outline:none; -webkit-appearance:none;}
+  .worker-pill:focus-within{background:#fff; box-shadow:0 0 0 2px var(--teal-400);}
+
+  /* pick list screen */
+  .list-header{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .back-btn{font-size:22px; color:#fff; background:none; border:none; padding:6px; cursor:pointer;}
+  .list-header-title{font-weight:600; font-size:17px; display:flex; align-items:center; gap:6px;}
+  .list-header-sub{font-size:13px; opacity:0.85;}
+  .list-count{font-size:16px; font-weight:600;}
+  .item-row{display:flex; align-items:center; gap:12px; padding:14px 4px; border-top:1px solid var(--border); cursor:pointer;}
+  .item-row:active{background:#F0F1EF;}
+  .item-row.next:active{background:#D5EEE3;}
+  .item-row.next{background:var(--teal-50); border-radius:10px; border-top:none; padding:14px 12px; margin:8px 0;}
+  .item-row.checked{opacity:0.5;}
+  .item-row.checked .item-title, .item-row.checked .item-desc{text-decoration:line-through;}
+  input[type=checkbox]{width:26px; height:26px; flex-shrink:0; accent-color:var(--teal-600);}
+  .item-icon{width:38px; height:38px; border-radius:8px; background:var(--teal-50); color:var(--teal-800); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .item-icon i{font-size:19px;}
+  .item-title{font-size:16px; font-weight:600;}
+  .item-title.accent{color:var(--teal-600);}
+  .merge-badge{font-size:11px; font-weight:500; color:var(--text-muted);}
+  .item-desc{font-size:13px; color:var(--text-2); margin-top:2px;}
+  .item-material-line{font-size:17px; font-weight:700; color:var(--text); margin-top:2px;}
+  .item-material-label{font-size:12px; font-weight:500; color:var(--text-2); margin-right:4px;}
+  .item-sub{font-size:12px; color:var(--text-muted); margin-top:2px;}
+  .item-batch{font-size:17px; font-weight:700; color:var(--text); margin-top:4px;}
+  .item-batch i{font-size:15px; color:var(--text-muted);}
+  .item-batch-label{font-size:12px; font-weight:500; color:var(--text-2); margin-right:4px;}
+  .item-qty-line{font-size:21px; font-weight:700; color:var(--teal-800); margin-top:4px;}
+  .item-qty-line i, .item-pallet-line i{font-size:15px;}
+  .item-qty-label{font-size:12px; font-weight:500; color:var(--text-2); margin-right:4px;}
+  .item-pallet-line{font-size:16px; font-weight:700; margin-top:4px;}
+  .pallet-count{color:var(--teal-800);}
+  .pallet-count.dash{color:var(--text-muted);}
+  .pallet-remainder{color:#8A5A0F;}
+  .item-right{display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:10px; flex-shrink:0; margin-left:6px;}
+  .item-door-badge{font-size:14px; font-weight:700; padding:4px 12px; border-radius:6px; background:var(--teal-600); color:#fff; display:inline-flex; align-items:center; gap:4px;}
+  .item-door-badge i{font-size:13px;}
+  .empty-state{text-align:center; padding:48px 20px; color:var(--text-2);}
+  .empty-state i{font-size:40px; color:var(--teal-600);}
+  .empty-state h3{margin:12px 0 4px; font-size:17px; color:var(--text);}
+
+  .toast{
+    position:absolute; left:50%; bottom:20px; transform:translateX(-50%) translateY(20px);
+    background:#1A1D1B; color:#fff; padding:14px 18px; border-radius:10px; font-size:14px;
+    display:flex; align-items:center; gap:12px; opacity:0; transition:all .25s ease; pointer-events:none;
+    max-width:90%; line-height:1.4;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
+  #toastIcon{font-size:18px; color:var(--teal-100); flex-shrink:0;}
+  .toast button{background:none; border:none; color:var(--teal-100); font-size:14px; font-weight:700; cursor:pointer; padding:8px 4px;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* overview screen */
+  .overview-topbar{display:flex; align-items:center; gap:10px;}
+  .overview-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;}
+  .ov-stat{background:var(--bg); border-radius:10px; padding:14px;}
+  .ov-stat-label{font-size:12px; color:var(--text-2); margin-bottom:4px;}
+  .ov-stat-value{font-size:22px; font-weight:600;}
+  .ov-stat-qty{font-size:11px; color:var(--text-muted); margin-top:2px;}
+  .ov-zone-row{display:flex; align-items:center; gap:12px; padding:16px; background:#fff; border:1px solid var(--border); border-radius:12px; margin-bottom:10px;}
+  .ov-zone-row.alert{background:var(--danger-bg); border-color:#F0B8B4;}
+  .ov-zone-icon{width:38px; height:38px; border-radius:8px; background:var(--teal-50); color:var(--teal-800); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ov-zone-row.alert .ov-zone-icon{background:#fff; color:var(--danger);}
+  .ov-zone-icon i{font-size:18px;}
+  .ov-zone-body{flex:1;}
+  .ov-zone-top{display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;}
+  .ov-zone-name{font-weight:600;}
+  .ov-zone-row.alert .ov-zone-name, .ov-zone-row.alert .ov-zone-count{color:var(--danger);}
+  .ov-progress-track{height:7px; background:var(--bg); border-radius:4px; overflow:hidden;}
+  .ov-zone-row.alert .ov-progress-track{background:#fff;}
+  .ov-progress-fill{height:100%; background:var(--teal-400);}
+  .ov-zone-row.alert .ov-progress-fill{background:var(--danger);}
+  .ov-zone-qty{font-size:12px; color:var(--text-muted); margin-top:6px;}
+  .overview-updated{font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-bottom:16px;}
+  .header-icon-btn{background:rgba(255,255,255,0.15); border:none; color:#fff; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;}
+  .header-icon-btn i{font-size:18px;}
+  .header-icon-btn i.spin{animation:spin-once .6s linear;}
+  @keyframes spin-once{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  .mode-tabs{display:flex; gap:8px; margin-bottom:16px; overflow-x:auto;}
+  .mode-tab{flex-shrink:0; font-size:14px; font-weight:600; padding:10px 16px; border-radius:20px; background:var(--bg); color:var(--text-2); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:5px;}
+  .mode-tab i{font-size:15px;}
+  .mode-tab.active{background:var(--teal-600); color:#fff;}
+  .mode-tabs-row{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:16px;}
+  .mode-tabs-row .mode-tabs{margin-bottom:0;}
+  .status-filter-select{font-size:13px; font-weight:600; padding:9px 12px; border-radius:20px; border:1px solid var(--border); background:#fff; color:var(--text-2); flex-shrink:0;}
+  .loading-state{text-align:center; padding:40px 20px; color:var(--text-muted); font-size:14px;}
+  .name-warning{display:flex; align-items:center; gap:8px; padding:14px; background:#FDF3E7; border:1px solid #F0D9B5; border-radius:10px; margin-bottom:16px; font-size:14px; color:#8A5A0F;}
+  .name-warning i{font-size:20px; flex-shrink:0;}
+  .worker-pill.needs-name{background:#FDF3E7; border:1px solid #F0D9B5;}
+  .done-banner{display:flex; align-items:center; gap:12px; padding:16px; background:var(--teal-50); border-radius:12px; margin-bottom:8px; color:var(--teal-800);}
+  .done-banner i{font-size:26px;}
+  .done-banner-title{font-weight:700; font-size:17px;}
+  .done-banner-sub{font-size:13px; color:var(--teal-600);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SCREEN 1: select date + zone -->
+  <div class="screen active" id="screen-select">
+    <div class="header">
+      <div class="header-top">
+        <div class="logo-box"><i class="ti ti-building-warehouse"></i></div>
+        <div style="flex:1;">
+          <div class="header-title">Outbound Picking</div>
+          <div class="header-sub">DC7171 Lamphun</div>
+        </div>
+        <button class="header-icon-btn" id="refreshBtn" onclick="manualRefresh()" aria-label="รีเฟรช" style="margin-right:8px;"><i class="ti ti-refresh"></i></button>
+        <button class="header-icon-btn" onclick="openCompleted()" aria-label="เสร็จแล้ว" style="margin-right:8px;"><i class="ti ti-clipboard-check"></i></button>
+        <button class="header-icon-btn" onclick="openOverview()" aria-label="ดูภาพรวม"><i class="ti ti-chart-bar"></i></button>
+      </div>
+    </div>
+    <div class="content">
+      <label class="field-label"><i class="ti ti-calendar"></i> วันที่ picking</label>
+      <input type="date" id="pickDate">
+
+      <div class="summary-card" id="summaryCard" style="display:none;">
+        <div class="summary-top">
+          <span>ทั้งหมดวันนี้</span>
+          <span id="summaryText">0/0</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="summaryFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="mode-tabs-row">
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-select-mode="zone" onclick="switchSelectMode('zone')"><i class="ti ti-map-pin"></i> โซน</button>
+          <button class="mode-tab" data-select-mode="plate" onclick="switchSelectMode('plate')"><i class="ti ti-truck"></i> ทะเบียนรถ</button>
+        </div>
+        <select id="statusFilter" class="status-filter-select" onchange="onStatusFilterChange()">
+          <option value="pending" selected>ยังไม่เสร็จ</option>
+          <option value="all">ทั้งหมด</option>
+          <option value="done">เสร็จแล้ว</option>
+        </select>
+      </div>
+
+      <label class="field-label" id="groupListLabel"><i class="ti ti-map-pin"></i> เลือกโซน</label>
+      <div id="zoneList"></div>
+
+      <div class="worker-pill" id="workerPill" style="margin-top:16px;">
+        <i class="ti ti-user-circle"></i>
+        <input type="text" id="workerName" placeholder="กรอกชื่อพนักงาน" style="border:none; background:transparent; margin:0; height:auto; padding:2px 0; font-size:15px; font-family:inherit; color:var(--text); width:100%;">
+        <i class="ti ti-check" id="workerSavedIcon" style="font-size:16px; color:var(--teal-600); opacity:0; transition:opacity .3s ease; flex-shrink:0;" aria-hidden="true"></i>
+      </div>
+      <div style="text-align:center; font-size:11px; color:var(--text-muted); margin-top:14px;" id="appVersionLabel"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1.5: choose a vehicle within the selected zone -->
+  <div class="screen" id="screen-zone-vehicles">
+    <div class="header">
+      <div class="list-header">
+        <button class="back-btn" onclick="backFromZoneVehicles()"><i class="ti ti-arrow-left"></i></button>
+        <div style="flex:1;">
+          <div class="list-header-title"><i class="ti ti-truck"></i> <span id="zvZoneName">Zone</span></div>
+          <div class="list-header-sub" id="zvDateLabel">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="mode-tabs-row">
+        <label class="field-label" style="margin-bottom:0;"><i class="ti ti-truck"></i> เลือกทะเบียนรถ</label>
+        <select id="statusFilterZone" class="status-filter-select" onchange="onZoneStatusFilterChange()">
+          <option value="pending" selected>ยังไม่เสร็จ</option>
+          <option value="all">ทั้งหมด</option>
+          <option value="done">เสร็จแล้ว</option>
+        </select>
+      </div>
+      <div id="zoneVehicleList"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: pick list -->
+  <div class="screen" id="screen-list">
+    <div class="header">
+      <div class="list-header">
+        <button class="back-btn" onclick="backFromPickList()"><i class="ti ti-arrow-left"></i></button>
+        <div style="flex:1;">
+          <div class="list-header-title"><i class="ti ti-package" id="listHeaderIcon"></i> <span id="listZoneName">Zone</span></div>
+          <div class="list-header-sub" id="listDateRange">-</div>
+        </div>
+        <div class="list-count" id="listCount">0/0</div>
+      </div>
+      <div class="progress-track" style="background:rgba(255,255,255,0.2);">
+        <div class="progress-fill" id="listFill" style="width:0%; background:#fff;"></div>
+      </div>
+    </div>
+    <div class="content" id="listItems"></div>
+  </div>
+
+  <!-- SCREEN 3: overview (ทั้ง picker และหัวหน้าใช้หน้าเดียวกัน) -->
+  <div class="screen" id="screen-overview">
+    <div class="header">
+      <div class="overview-topbar">
+        <button class="back-btn" onclick="goToSelect()"><i class="ti ti-arrow-left"></i></button>
+        <div style="flex:1;">
+          <div class="list-header-title"><i class="ti ti-chart-bar"></i> ภาพรวมการ pick</div>
+          <div class="list-header-sub" id="ovDateLabel">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="zone" onclick="switchOverviewMode('zone')"><i class="ti ti-map-pin"></i> โซน</button>
+        <button class="mode-tab" data-mode="door" onclick="switchOverviewMode('door')"><i class="ti ti-door"></i> ประตู</button>
+        <button class="mode-tab" data-mode="dest" onclick="switchOverviewMode('dest')"><i class="ti ti-flag"></i> ปลายทาง</button>
+        <button class="mode-tab" data-mode="picker" onclick="switchOverviewMode('picker')"><i class="ti ti-user"></i> รายคน</button>
+        <button class="mode-tab" data-mode="plate" onclick="switchOverviewMode('plate')"><i class="ti ti-truck"></i> รายคัน</button>
+      </div>
+      <div class="overview-updated"><i class="ti ti-refresh"></i> <span id="ovUpdatedLabel">-</span></div>
+      <div class="overview-stats">
+        <div class="ov-stat"><div class="ov-stat-label">ทั้งหมด</div><div class="ov-stat-value" id="ovTotal">0</div><div class="ov-stat-qty" id="ovTotalQty">0 กล่อง</div></div>
+        <div class="ov-stat"><div class="ov-stat-label">หยิบแล้ว</div><div class="ov-stat-value" style="color:var(--teal-600);" id="ovPicked">0</div><div class="ov-stat-qty" id="ovPickedQty">0 กล่อง</div></div>
+        <div class="ov-stat"><div class="ov-stat-label">คงเหลือ</div><div class="ov-stat-value" style="color:var(--danger);" id="ovRemaining">0</div><div class="ov-stat-qty" id="ovRemainingQty">0 กล่อง</div></div>
+      </div>
+      <div id="ovZoneRows"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: completed vehicles -->
+  <div class="screen" id="screen-completed">
+    <div class="header">
+      <div class="overview-topbar">
+        <button class="back-btn" onclick="goToSelect()"><i class="ti ti-arrow-left"></i></button>
+        <div style="flex:1;">
+          <div class="list-header-title"><i class="ti ti-clipboard-check"></i> คันที่หยิบครบแล้ว</div>
+          <div class="list-header-sub" id="cpDateLabel">-</div>
+        </div>
+      </div>
+    </div>
+    <div class="content" id="completedList"></div>
+  </div>
+
+  <div class="toast" id="toast">
+    <i class="ti" id="toastIcon"></i>
+    <span id="toastText"></span>
+    <button id="toastUndoBtn" onclick="undoLast()">ยกเลิก</button>
+  </div>
+</div>
+
+<script>
+/* ---------- CONFIG ---------- */
+var USE_MOCK = false; // now pointing at the deployed GAS Web App
+var API_URL = 'https://script.google.com/macros/s/AKfycbyPIxttnWpwTbv5Qjbixp8uNhM9YgY8l242DSj2ERzZnHi17Auk0Igm0ZXE-nQNPBnHOw/exec';
+var APP_VERSION = 'v15 · 2026-07-22';
+
+/* ---------- MOCK DATA (matches getPickList / getZones shape) ---------- */
+var MOCK_ITEMS = [
+  {rowKey:2, storBin:'A01-35', material:320040573, materialDesc:'เลย์ร็อค มันฝรั่งแท้13ก12X12กล่อง12F1Y26', batch:202607062, qty:19, qtyPerPallet:30, uom:'CV', door:'D01', dest:'7-11LPN', plate:'81-1234 ลำพูน', zone:'Zone 1', status:'หยิบแล้ว'},
+  {rowKey:3, storBin:'A01-42', material:320040578, materialDesc:'เลย์ร็อคหมึกย่าง 13ก12X12 กล่อง 12F1 Y26', batch:202607131, qty:8, qtyPerPallet:0, uom:'CV', door:'D01', dest:'7-11LPN', plate:'81-1234 ลำพูน', zone:'Zone 1', status:'หยิบแล้ว'},
+  {rowKey:4, storBin:'A01-58', material:320040779, materialDesc:'ซันไบทส์ ออริจินัล 15G 8X12 Y26 กล่อง', batch:202607131, qty:13, qtyPerPallet:60, uom:'CV', door:'D01', dest:'7-11LPN', plate:'81-1234 ลำพูน', zone:'Zone 1', status:'ยังไม่หยิบ'},
+  {rowKey:7, storBin:'A01-58', material:320040779, materialDesc:'ซันไบทส์ ออริจินัล 15G 8X12 Y26 กล่อง', batch:202607131, qty:9, qtyPerPallet:60, uom:'CV', door:'D01', dest:'7-11LPN', plate:'81-1234 ลำพูน', zone:'Zone 1', status:'ยังไม่หยิบ'},
+  {rowKey:5, storBin:'A01-61', material:320040575, materialDesc:'เลย์คลาสสิคสาหร่าย 13ก 12X12กล่อง12F1Y26', batch:202607062, qty:43, qtyPerPallet:30, uom:'CV', door:'D09', dest:'DC KKN', plate:'82-5678 ลำพูน', zone:'Zone 2', status:'ยังไม่หยิบ'},
+  {rowKey:6, storBin:'A02-06', material:320038965, materialDesc:'เลย์ร็อค บาร์บีคิว 25ก 12X6 กล่อง', batch:202607062, qty:14, qtyPerPallet:49, uom:'CV', door:'D09', dest:'DC KKN', plate:'82-5678 ลำพูน', zone:'Zone 2', status:'ยังไม่หยิบ'}
+];
+var MOCK_ZONES = [
+  {zone:'Zone 1', total:14, picked:2, remaining:12, totalQty:210, pickedQty:30, remainingQty:180, binRangeLabel:'A01-A02'},
+  {zone:'Zone 2', total:22, picked:20, remaining:2, totalQty:330, pickedQty:300, remainingQty:30, binRangeLabel:'A03-A06'},
+  {zone:'Zone 3', total:18, picked:2, remaining:16, totalQty:270, pickedQty:30, remainingQty:240, binRangeLabel:'B05-B09'}
+];
+var MOCK_VEHICLES = [
+  {plate:'81-1234 ลำพูน', total:3, picked:2, remaining:1, totalQty:40, pickedQty:27, remainingQty:13, doorLabel:'D01', destLabel:'7-11LPN'},
+  {plate:'82-5678 ลำพูน', total:2, picked:0, remaining:2, totalQty:57, pickedQty:0, remainingQty:57, doorLabel:'D09', destLabel:'DC KKN'},
+  {plate:'83-9012 ลำพูน', total:6, picked:6, remaining:0, totalQty:90, pickedQty:90, remainingQty:0, doorLabel:'D10', destLabel:'Lotus'}
+];
+
+/* ---------- API ---------- */
+var MOCK_OVERVIEW_GROUPS = {
+  zone: [
+    {key:'Zone 1', total:14, picked:12, pickers:'สมชาย ใจดี'},
+    {key:'Zone 2', total:22, picked:20, pickers:'วรรณา พรมมา'},
+    {key:'Zone 3', total:18, picked:2, pickers:''}
+  ],
+  door: [
+    {key:'D01', total:40, picked:30, pickers:''},
+    {key:'D09', total:8, picked:2, pickers:''},
+    {key:'D10', total:6, picked:2, pickers:''}
+  ],
+  dest: [
+    {key:'7-11LPN', total:38, picked:28, pickers:''},
+    {key:'DC KKN', total:10, picked:4, pickers:''},
+    {key:'Lotus', total:6, picked:2, pickers:''}
+  ],
+  picker: [
+    {key:'สมชาย ใจดี', total:12, picked:12, pickers:''},
+    {key:'วรรณา พรมมา', total:20, picked:20, pickers:''},
+    {key:'อนันต์ คำมูล', total:2, picked:2, pickers:''}
+  ],
+  plate: [
+    {key:'81-1234 ลำพูน', total:3, picked:2, pickers:'สมชาย ใจดี'},
+    {key:'82-5678 ลำพูน', total:2, picked:0, pickers:''},
+    {key:'83-9012 ลำพูน', total:6, picked:6, pickers:'วรรณา พรมมา'}
+  ]
+};
+
+function apiGet(action, params){
+  if (USE_MOCK) {
+    return new Promise(function(resolve){
+      setTimeout(function(){
+        if (action === 'getZones') resolve({zones: MOCK_ZONES});
+        if (action === 'getPickList') resolve({items: MOCK_ITEMS, total: MOCK_ITEMS.length, picked: MOCK_ITEMS.filter(i=>i.status==='หยิบแล้ว').length});
+        if (action === 'getVehicles') {
+          if (params && params.zone) {
+            var grouped = {};
+            MOCK_ITEMS.filter(i=>i.zone===params.zone).forEach(function(i){
+              if (!grouped[i.plate]) grouped[i.plate] = {plate:i.plate, total:0, picked:0, totalQty:0, pickedQty:0, doors:{}, dests:{}};
+              grouped[i.plate].total++;
+              grouped[i.plate].totalQty += i.qty;
+              if (i.status==='หยิบแล้ว') { grouped[i.plate].picked++; grouped[i.plate].pickedQty += i.qty; }
+              grouped[i.plate].doors[i.door]=true;
+              grouped[i.plate].dests[i.dest]=true;
+            });
+            var scopedVehicles = Object.keys(grouped).map(function(k){
+              var g = grouped[k];
+              return {plate:g.plate, total:g.total, picked:g.picked, remaining:g.total-g.picked, totalQty:g.totalQty, pickedQty:g.pickedQty, remainingQty:g.totalQty-g.pickedQty, doorLabel:Object.keys(g.doors).join(', '), destLabel:Object.keys(g.dests).join(', ')};
+            });
+            resolve({vehicles: scopedVehicles});
+          } else {
+            resolve({vehicles: MOCK_VEHICLES});
+          }
+        }
+        if (action === 'getPickListByPlate') {
+          var plateItems = MOCK_ITEMS.filter(i=>i.plate === params.plate && (!params.zone || i.zone === params.zone));
+          resolve({items: plateItems, total: plateItems.length, picked: plateItems.filter(i=>i.status==='หยิบแล้ว').length});
+        }
+        if (action === 'getOverview') {
+          var groupBy = (params && params.groupBy) || 'zone';
+          var groups = MOCK_OVERVIEW_GROUPS[groupBy] || [];
+          var total = groups.reduce((s,g)=>s+g.total,0);
+          var picked = groups.reduce((s,g)=>s+g.picked,0);
+          var QTY_PER_ITEM = 15; // approximate, mock only
+          resolve({
+            groupBy: groupBy,
+            total: total, picked: picked, remaining: total-picked,
+            totalQty: total*QTY_PER_ITEM, pickedQty: picked*QTY_PER_ITEM, remainingQty: (total-picked)*QTY_PER_ITEM,
+            updatedAt: new Date().toLocaleTimeString('th-TH'),
+            groups: groups.map(g=>({key:g.key, total:g.total, picked:g.picked, remaining:g.total-g.picked, totalQty:g.total*QTY_PER_ITEM, pickedQty:g.picked*QTY_PER_ITEM, remainingQty:(g.total-g.picked)*QTY_PER_ITEM, pickers:g.pickers}))
+          });
+        }
+      }, 150);
+    });
+  }
+  var qs = Object.keys(params||{}).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+  return fetch(API_URL+'?action='+action+'&'+qs).then(r=>r.json()).catch(function(err){
+    return {error: 'เชื่อมต่อ API ไม่ได้: '+err.message};
+  });
+}
+function apiPost(body){
+  if (USE_MOCK) {
+    if (body.action === 'updatePickStatusBulk') {
+      (body.rowKeys||[]).forEach(function(rk){
+        var it = MOCK_ITEMS.find(i=>i.rowKey===rk);
+        if (it) it.status = body.status;
+      });
+    } else if (body.action === 'updatePickStatus') {
+      var item = MOCK_ITEMS.find(i=>i.rowKey===body.rowKey);
+      if (item) item.status = body.status;
+    }
+    return Promise.resolve({ok:true});
+  }
+  return fetch(API_URL, {method:'POST', body: JSON.stringify(body)}).then(r=>r.json());
+}
+
+/* ---------- STALE-WHILE-REVALIDATE CACHE ---------- */
+function cachedApiGet(action, params, cacheKey, onData){
+  var cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try { onData(JSON.parse(cached), true); } catch(e){}
+  }
+  apiGet(action, params).then(function(res){
+    if (res && !res.error) {
+      localStorage.setItem(cacheKey, JSON.stringify(res));
+    }
+    onData(res, false);
+  });
+}
+
+/* ---------- STATE ---------- */
+var state = { date:null, groupType:null, groupKey:null, zoneContext:null, cameFromCompleted:false, items:[], lastAction:null, scrolledThisVisit:false };
+var selectMode = localStorage.getItem('selectMode') || 'zone';
+var statusFilter = 'pending';
+var lastZonesRes = null;
+var lastVehiclesRes = null;
+
+function applyStatusFilter(list){
+  if (statusFilter === 'all') {
+    return list.slice().sort(function(a,b){
+      var aDone = a.remaining === 0 && a.total > 0;
+      var bDone = b.remaining === 0 && b.total > 0;
+      if (aDone === bDone) return 0;
+      return aDone ? 1 : -1; // not-done first, done last
+    });
+  }
+  if (statusFilter === 'done') return list.filter(function(x){ return x.remaining === 0 && x.total > 0; });
+  return list.filter(function(x){ return x.remaining > 0 || x.total === 0; }); // pending (default)
+}
+
+function onStatusFilterChange(){
+  statusFilter = document.getElementById('statusFilter').value;
+  var zoneSelect = document.getElementById('statusFilterZone');
+  if (zoneSelect) zoneSelect.value = statusFilter;
+  if (selectMode === 'plate' && lastVehiclesRes) renderVehicles(lastVehiclesRes);
+  else if (lastZonesRes) renderZones(lastZonesRes);
+}
+
+/* ---------- INIT ---------- */
+document.getElementById('pickDate').value = new Date().toISOString().slice(0,10);
+document.getElementById('workerName').value = localStorage.getItem('pickerName') || '';
+document.getElementById('workerName').addEventListener('change', function(e){
+  localStorage.setItem('pickerName', e.target.value);
+  if (e.target.value.trim().length > 0) {
+    var icon = document.getElementById('workerSavedIcon');
+    icon.style.opacity = '1';
+    setTimeout(function(){ icon.style.opacity = '0'; }, 1500);
+  }
+});
+document.getElementById('workerName').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.target.blur(); }
+});
+document.getElementById('workerName').addEventListener('input', function(e){
+  if (e.target.value.trim().length > 0) {
+    document.getElementById('workerPill').classList.remove('needs-name');
+  }
+});
+document.getElementById('appVersionLabel').textContent = APP_VERSION;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(err){
+      console.log('Service worker registration failed:', err);
+    });
+  });
+}
+
+document.getElementById('pickDate').addEventListener('change', loadGroupList);
+document.querySelectorAll('[data-select-mode]').forEach(function(btn){
+  btn.classList.toggle('active', btn.getAttribute('data-select-mode') === selectMode);
+});
+updateGroupListLabel();
+loadGroupList();
+
+function switchSelectMode(mode){
+  selectMode = mode;
+  localStorage.setItem('selectMode', mode);
+  document.querySelectorAll('[data-select-mode]').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-select-mode') === mode);
+  });
+  updateGroupListLabel();
+  loadGroupList();
+}
+
+function updateGroupListLabel(){
+  var label = document.getElementById('groupListLabel');
+  if (selectMode === 'plate') {
+    label.innerHTML = '<i class="ti ti-truck"></i> เลือกทะเบียนรถ';
+  } else {
+    label.innerHTML = '<i class="ti ti-map-pin"></i> เลือกโซน';
+  }
+}
+
+function loadGroupList(){
+  if (selectMode === 'plate') loadVehicles();
+  else loadZones();
+}
+
+function manualRefresh(){
+  var date = document.getElementById('pickDate').value;
+  localStorage.removeItem('zones:'+date);
+  localStorage.removeItem('vehicles:'+date);
+
+  var icon = document.querySelector('#refreshBtn i');
+  if (icon) {
+    icon.classList.remove('spin');
+    void icon.offsetWidth; // restart animation if clicked repeatedly
+    icon.classList.add('spin');
+  }
+  loadGroupList();
+  showToast('รีเฟรชข้อมูลแล้ว', false);
+}
+
+function loadZones(){
+  var date = document.getElementById('pickDate').value;
+  var cacheKey = 'zones:'+date;
+  var hasCache = !!localStorage.getItem(cacheKey);
+  if (!hasCache) {
+    document.getElementById('zoneList').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  }
+
+  cachedApiGet('getZones', {date:date}, cacheKey, function(res){
+    renderZones(res);
+  });
+}
+
+function updateSummaryCard(total, picked){
+  var summaryCard = document.getElementById('summaryCard');
+  if (total > 0) {
+    summaryCard.style.display = 'block';
+    document.getElementById('summaryText').textContent = picked+'/'+total;
+    document.getElementById('summaryFill').style.width = Math.round(picked/total*100)+'%';
+  } else {
+    summaryCard.style.display = 'none';
+  }
+}
+
+function renderZones(res){
+  if (res && res.error) {
+    document.getElementById('summaryCard').style.display = 'none';
+    document.getElementById('zoneList').innerHTML =
+      '<div class="empty-state" style="color:var(--danger);"><i class="ti ti-alert-triangle" style="color:var(--danger);"></i><h3>เชื่อมต่อ Sheet ไม่สำเร็จ</h3><div style="font-size:12px; word-break:break-all;">'+res.error+'</div></div>';
+    return;
+  }
+  var zones = res.zones || [];
+    lastZonesRes = res;
+    var total = zones.reduce((s,z)=>s+z.total,0);
+    var picked = zones.reduce((s,z)=>s+z.picked,0);
+    updateSummaryCard(total, picked);
+
+    var pendingZones = applyStatusFilter(zones);
+
+    var html = pendingZones.map(function(z){
+      var pct = z.total ? Math.round(z.picked/z.total*100) : 0;
+      var isUnmapped = z.zone === 'ไม่พบโซน';
+      var isDone = z.remaining === 0 && z.total > 0;
+      var isStarted = z.picked > 0;
+
+      var cardClass = 'zone-card' + (isUnmapped ? ' warning disabled' : '');
+      var icon = isDone ? 'ti-circle-check' : 'ti-package';
+      var badgeClass = isUnmapped ? 'warning' : (isDone ? 'done' : (isStarted ? 'inprogress' : 'notstarted'));
+      var badgeText = isUnmapped ? 'ยังไม่ map โซน' : (isDone ? 'หยิบครบ' : (isStarted ? 'กำลังหยิบ' : 'ยังไม่เริ่ม'));
+      var clickHandler = isUnmapped ? 'showUnmappedNotice()' : ('openZone(\''+z.zone+'\')');
+      var chevronIcon = isUnmapped ? 'ti-alert-triangle' : 'ti-chevron-right';
+
+      return '<div class="'+cardClass+'" onclick="'+clickHandler+'">'+
+        '<div class="zone-icon"><i class="ti '+icon+'"></i></div>'+
+        '<div class="zone-card-body">'+
+          '<div class="zone-top-row">'+
+            '<span class="zone-name">'+z.zone+'</span>'+
+            '<span class="zone-badge '+badgeClass+'">'+badgeText+'</span>'+
+          '</div>'+
+          '<div class="zone-meta">'+z.binRangeLabel+' · '+z.remaining+' รายการรอหยิบ · '+formatQty(z.remainingQty)+' กล่อง</div>'+
+          '<div class="zone-progress-track"><div class="zone-progress-fill" style="width:'+pct+'%"></div></div>'+
+        '</div>'+
+        '<i class="ti '+chevronIcon+' zone-chevron'+(isUnmapped?' warning-icon':'')+'"></i>'+
+      '</div>';
+    }).join('');
+    document.getElementById('zoneList').innerHTML = html || '<div class="empty-state"><i class="ti '+emptyStateIcon()+'"></i><h3>'+emptyStateText(zones.length)+'</h3></div>';
+}
+
+function emptyStateIcon(){
+  return statusFilter === 'done' ? 'ti-circle-off' : 'ti-circle-check';
+}
+function emptyStateText(totalGroups){
+  if (totalGroups === 0) return 'ไม่มีงานวันนี้';
+  if (statusFilter === 'done') return 'ยังไม่มีที่หยิบครบ';
+  if (statusFilter === 'pending') return 'หยิบครบทุกรายการแล้ว';
+  return 'ไม่มีข้อมูล';
+}
+
+function loadVehicles(){
+  var date = document.getElementById('pickDate').value;
+  var cacheKey = 'vehicles:'+date;
+  var hasCache = !!localStorage.getItem(cacheKey);
+  if (!hasCache) {
+    document.getElementById('zoneList').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  }
+  cachedApiGet('getVehicles', {date:date}, cacheKey, function(res){
+    renderVehicles(res);
+  });
+}
+
+function renderVehicles(res){
+  if (res && res.error) {
+    document.getElementById('summaryCard').style.display = 'none';
+    document.getElementById('zoneList').innerHTML =
+      '<div class="empty-state" style="color:var(--danger);"><i class="ti ti-alert-triangle" style="color:var(--danger);"></i><h3>เชื่อมต่อ Sheet ไม่สำเร็จ</h3><div style="font-size:12px; word-break:break-all;">'+res.error+'</div></div>';
+    return;
+  }
+  var allVehicles = res.vehicles || [];
+  lastVehiclesRes = res;
+  // fully-picked vehicles move to the separate "เสร็จแล้ว" screen, but the
+  // status filter can still request them explicitly
+  var vehicles = applyStatusFilter(allVehicles);
+
+  var total = allVehicles.reduce((s,v)=>s+v.total,0);
+  var picked = allVehicles.reduce((s,v)=>s+v.picked,0);
+  updateSummaryCard(total, picked);
+
+  var html = vehicles.map(function(v){
+    var pct = v.total ? Math.round(v.picked/v.total*100) : 0;
+    var isDone = v.remaining === 0 && v.total > 0;
+    var isStarted = v.picked > 0;
+    var icon = isDone ? 'ti-circle-check' : 'ti-truck';
+    var badgeClass = isDone ? 'done' : (isStarted ? 'inprogress' : 'notstarted');
+    var badgeText = isDone ? 'หยิบครบ' : (isStarted ? 'กำลังหยิบ' : 'ยังไม่เริ่ม');
+
+    return '<div class="zone-card" onclick="openVehicle(\''+v.plate+'\')">'+
+      '<div class="zone-icon"><i class="ti '+icon+'"></i></div>'+
+      '<div class="zone-card-body">'+
+        '<div class="zone-top-row">'+
+          '<span class="zone-name">'+v.plate+'</span>'+
+          '<span class="zone-badge '+badgeClass+'">'+badgeText+'</span>'+
+        '</div>'+
+        '<div class="zone-meta">'+v.doorLabel+' · '+v.destLabel+' · '+v.remaining+' รายการรอหยิบ · '+formatQty(v.remainingQty)+' กล่อง</div>'+
+        '<div class="zone-progress-track"><div class="zone-progress-fill" style="width:'+pct+'%"></div></div>'+
+      '</div>'+
+      '<i class="ti ti-chevron-right zone-chevron"></i>'+
+    '</div>';
+  }).join('');
+  document.getElementById('zoneList').innerHTML = html || '<div class="empty-state"><i class="ti '+emptyStateIcon()+'"></i><h3>'+emptyStateText(allVehicles.length)+'</h3></div>';
+}
+
+function hasWorkerName(){
+  return document.getElementById('workerName').value.trim().length > 0;
+}
+
+function showUnmappedNotice(){
+  showToast('Bin เหล่านี้ยังไม่ถูก map เข้าโซน - แจ้งซุปให้เติมชีต Zone Picking', false, 'ti-alert-triangle');
+}
+
+function openZone(zone){
+  state.zoneContext = zone;
+  document.getElementById('screen-select').classList.remove('active');
+  document.getElementById('screen-zone-vehicles').classList.add('active');
+  document.getElementById('zvZoneName').textContent = zone;
+  document.getElementById('zvDateLabel').textContent = formatDateLabel(document.getElementById('pickDate').value);
+  loadZoneVehicles(zone);
+}
+
+function loadZoneVehicles(zone){
+  var date = document.getElementById('pickDate').value;
+  var cacheKey = 'vehicles:'+date+':'+zone;
+  var hasCache = !!localStorage.getItem(cacheKey);
+  if (!hasCache) {
+    document.getElementById('zoneVehicleList').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  }
+  var filterSelect = document.getElementById('statusFilterZone');
+  if (filterSelect) filterSelect.value = statusFilter;
+
+  cachedApiGet('getVehicles', {date:date, zone:zone}, cacheKey, function(res){
+    renderZoneVehicles(res);
+  });
+}
+
+var lastZoneVehiclesRes = null;
+
+function onZoneStatusFilterChange(){
+  statusFilter = document.getElementById('statusFilterZone').value;
+  var mainSelect = document.getElementById('statusFilter');
+  if (mainSelect) mainSelect.value = statusFilter;
+  if (lastZoneVehiclesRes) renderZoneVehicles(lastZoneVehiclesRes);
+}
+
+function renderZoneVehicles(res){
+  if (res && res.error) {
+    document.getElementById('zoneVehicleList').innerHTML =
+      '<div class="empty-state" style="color:var(--danger);"><i class="ti ti-alert-triangle" style="color:var(--danger);"></i><h3>เชื่อมต่อ Sheet ไม่สำเร็จ</h3></div>';
+    return;
+  }
+  var allVehicles = res.vehicles || [];
+  lastZoneVehiclesRes = res;
+  var pending = applyStatusFilter(allVehicles);
+
+  var html = pending.map(function(v){
+    var pct = v.total ? Math.round(v.picked/v.total*100) : 0;
+    var isDone = v.remaining === 0 && v.total > 0;
+    var isStarted = v.picked > 0;
+    var icon = isDone ? 'ti-circle-check' : 'ti-truck';
+    var badgeClass = isDone ? 'done' : (isStarted ? 'inprogress' : 'notstarted');
+    var badgeText = isDone ? 'หยิบครบ' : (isStarted ? 'กำลังหยิบ' : 'ยังไม่เริ่ม');
+
+    return '<div class="zone-card" onclick="selectVehicleInZone(\''+v.plate+'\')">'+
+      '<div class="zone-icon"><i class="ti '+icon+'"></i></div>'+
+      '<div class="zone-card-body">'+
+        '<div class="zone-top-row">'+
+          '<span class="zone-name">'+v.plate+'</span>'+
+          '<span class="zone-badge '+badgeClass+'">'+badgeText+'</span>'+
+        '</div>'+
+        '<div class="zone-meta">'+v.doorLabel+' · '+v.destLabel+' · '+v.remaining+' รายการรอหยิบ · '+formatQty(v.remainingQty)+' กล่อง</div>'+
+        '<div class="zone-progress-track"><div class="zone-progress-fill" style="width:'+pct+'%"></div></div>'+
+      '</div>'+
+      '<i class="ti ti-chevron-right zone-chevron"></i>'+
+    '</div>';
+  }).join('');
+  document.getElementById('zoneVehicleList').innerHTML = html || '<div class="empty-state"><i class="ti '+emptyStateIcon()+'"></i><h3>'+emptyStateText(allVehicles.length)+'</h3></div>';
+}
+
+function selectVehicleInZone(plate){
+  state.cameFromCompleted = false;
+  enterPickList('plate', plate, plate, 'ti-truck', state.zoneContext);
+}
+
+function backFromZoneVehicles(){
+  document.getElementById('screen-zone-vehicles').classList.remove('active');
+  document.getElementById('screen-select').classList.add('active');
+  loadGroupList();
+}
+
+function openVehicle(plate){
+  state.cameFromCompleted = false;
+  enterPickList('plate', plate, plate, 'ti-truck', null);
+}
+
+function enterPickList(groupType, groupKey, displayLabel, iconClass, zoneContext){
+  if (!hasWorkerName()) {
+    document.getElementById('workerPill').classList.add('needs-name');
+    document.getElementById('workerName').focus();
+    showToast('กรอกชื่อพนักงานก่อนเริ่มหยิบ', false, 'ti-alert-triangle');
+    return;
+  }
+  state.date = document.getElementById('pickDate').value;
+  state.groupType = groupType;
+  state.groupKey = groupKey;
+  state.zoneContext = zoneContext || null;
+  document.getElementById('screen-zone-vehicles').classList.remove('active');
+  document.getElementById('screen-select').classList.remove('active');
+  document.getElementById('screen-list').classList.add('active');
+  document.getElementById('listHeaderIcon').className = 'ti '+iconClass;
+  document.getElementById('listZoneName').textContent = zoneContext ? (zoneContext+' · '+displayLabel) : displayLabel;
+  document.getElementById('listDateRange').textContent = formatDateLabel(state.date);
+  document.getElementById('listItems').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  loadPickList();
+}
+
+function backFromPickList(){
+  document.getElementById('screen-list').classList.remove('active');
+  if (state.cameFromCompleted) {
+    document.getElementById('screen-completed').classList.add('active');
+    loadCompleted();
+  } else if (state.zoneContext && state.groupType === 'plate') {
+    document.getElementById('screen-zone-vehicles').classList.add('active');
+    document.getElementById('zvZoneName').textContent = state.zoneContext;
+    loadZoneVehicles(state.zoneContext);
+  } else {
+    document.getElementById('screen-select').classList.add('active');
+    loadGroupList();
+  }
+}
+
+function goToSelect(){
+  document.getElementById('screen-list').classList.remove('active');
+  document.getElementById('screen-zone-vehicles').classList.remove('active');
+  document.getElementById('screen-overview').classList.remove('active');
+  document.getElementById('screen-completed').classList.remove('active');
+  document.getElementById('screen-select').classList.add('active');
+  stopOverviewRefresh();
+  loadGroupList();
+}
+
+function openCompleted(){
+  document.getElementById('screen-select').classList.remove('active');
+  document.getElementById('screen-completed').classList.add('active');
+  document.getElementById('cpDateLabel').textContent = formatDateLabel(document.getElementById('pickDate').value);
+  loadCompleted();
+}
+
+function loadCompleted(){
+  var date = document.getElementById('pickDate').value;
+  document.getElementById('completedList').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  apiGet('getVehicles', {date:date}).then(function(res){
+    if (res && res.error) {
+      document.getElementById('completedList').innerHTML =
+        '<div class="empty-state" style="color:var(--danger);"><i class="ti ti-alert-triangle" style="color:var(--danger);"></i><h3>เชื่อมต่อ Sheet ไม่สำเร็จ</h3></div>';
+      return;
+    }
+    var done = (res.vehicles || []).filter(function(v){ return v.remaining === 0 && v.total > 0; });
+    if (done.length === 0) {
+      document.getElementById('completedList').innerHTML = '<div class="empty-state"><i class="ti ti-truck-off"></i><h3>ยังไม่มีคันที่หยิบครบ</h3></div>';
+      return;
+    }
+    var html = done.map(function(v){
+      return '<div class="zone-card" onclick="openCompletedVehicle(\''+v.plate+'\')">'+
+        '<div class="zone-icon"><i class="ti ti-circle-check"></i></div>'+
+        '<div class="zone-card-body">'+
+          '<div class="zone-top-row">'+
+            '<span class="zone-name">'+v.plate+'</span>'+
+            '<span class="zone-badge done">หยิบครบ</span>'+
+          '</div>'+
+          '<div class="zone-meta">'+v.doorLabel+' · '+v.destLabel+' · '+v.total+' รายการ · '+formatQty(v.totalQty)+' กล่อง</div>'+
+        '</div>'+
+        '<i class="ti ti-chevron-right zone-chevron"></i>'+
+      '</div>';
+    }).join('');
+    document.getElementById('completedList').innerHTML = html;
+  });
+}
+
+function openCompletedVehicle(plate){
+  state.cameFromCompleted = true;
+  enterPickList('plate', plate, plate, 'ti-truck', null);
+}
+
+var ALERT_THRESHOLD = 0.3; // highlight zone red if progress below 30%
+var overviewTimer = null;
+var overviewMode = 'zone';
+
+function openOverview(){
+  document.getElementById('screen-select').classList.remove('active');
+  document.getElementById('screen-overview').classList.add('active');
+  document.getElementById('ovDateLabel').textContent = formatDateLabel(document.getElementById('pickDate').value);
+  loadOverview();
+  overviewTimer = setInterval(loadOverview, 30000);
+}
+function stopOverviewRefresh(){
+  if (overviewTimer) { clearInterval(overviewTimer); overviewTimer = null; }
+}
+
+function switchOverviewMode(mode){
+  overviewMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+  });
+  document.getElementById('ovZoneRows').innerHTML = '<div class="loading-state">กำลังโหลดรายการ...</div>';
+  loadOverview();
+}
+
+var MODE_META = {
+  zone: {icon:'ti-package', label:function(g){ return g.pickers ? (g.key+' · '+g.pickers) : (g.key+' · ยังไม่มีคนรับ'); }, alert:true, sortByPicked:false},
+  door: {icon:'ti-door', label:function(g){ return 'ประตู '+g.key; }, alert:true, sortByPicked:false},
+  dest: {icon:'ti-map-pin', label:function(g){ return g.key; }, alert:true, sortByPicked:false},
+  picker: {icon:'ti-user', label:function(g){ return g.key; }, alert:false, sortByPicked:true},
+  plate: {icon:'ti-truck', label:function(g){ return g.pickers ? (g.key+' · '+g.pickers) : (g.key+' · ยังไม่มีคนหยิบ'); }, alert:true, sortByPicked:false}
+};
+
+function loadOverview(){
+  apiGet('getOverview', {date: document.getElementById('pickDate').value, groupBy: overviewMode}).then(function(data){
+    document.getElementById('ovTotal').textContent = data.total;
+    document.getElementById('ovPicked').textContent = data.picked;
+    document.getElementById('ovRemaining').textContent = data.remaining;
+    document.getElementById('ovTotalQty').textContent = formatQty(data.totalQty)+' กล่อง';
+    document.getElementById('ovPickedQty').textContent = formatQty(data.pickedQty)+' กล่อง';
+    document.getElementById('ovRemainingQty').textContent = formatQty(data.remainingQty)+' กล่อง';
+    document.getElementById('ovUpdatedLabel').textContent = 'อัปเดต ' + (data.updatedAt || '-');
+
+    var groups = data.groups || [];
+    if (groups.length === 0) {
+      document.getElementById('ovZoneRows').innerHTML = '<div class="empty-state"><i class="ti ti-calendar-off"></i><h3>ไม่มีข้อมูล</h3></div>';
+      return;
+    }
+    var meta = MODE_META[overviewMode] || MODE_META.zone;
+    if (meta.sortByPicked) {
+      groups = groups.slice().sort(function(a,b){ return b.picked - a.picked; });
+    }
+    var html = groups.map(function(g){
+      var pct = g.total ? Math.round(g.picked/g.total*100) : 0;
+      var isAlert = meta.alert && (pct/100) < ALERT_THRESHOLD;
+      var icon = isAlert ? 'ti-alert-triangle' : meta.icon;
+      var label = meta.label(g);
+      return '<div class="ov-zone-row'+(isAlert?' alert':'')+'">'+
+        '<div class="ov-zone-icon"><i class="ti '+icon+'"></i></div>'+
+        '<div class="ov-zone-body">'+
+          '<div class="ov-zone-top"><span class="ov-zone-name">'+label+'</span><span class="ov-zone-count">'+g.picked+'/'+g.total+' รายการ</span></div>'+
+          '<div class="ov-progress-track"><div class="ov-progress-fill" style="width:'+pct+'%"></div></div>'+
+          '<div class="ov-zone-qty">'+formatQty(g.pickedQty)+'/'+formatQty(g.totalQty)+' กล่อง</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    document.getElementById('ovZoneRows').innerHTML = html;
+  });
+}
+
+function formatQty(n){
+  n = Number(n) || 0;
+  return n.toLocaleString('th-TH', {maximumFractionDigits:1});
+}
+
+function loadPickList(){
+  state.scrolledThisVisit = false;
+  var action = state.groupType === 'plate' ? 'getPickListByPlate' : 'getPickList';
+  var params = state.groupType === 'plate'
+    ? {date:state.date, plate:state.groupKey, zone: state.zoneContext || ''}
+    : {date:state.date, zone:state.groupKey};
+  var cacheKey = 'picklist:'+state.groupType+':'+state.date+':'+state.groupKey+':'+(state.zoneContext||'');
+
+  cachedApiGet(action, params, cacheKey, function(res){
+    var sorted = (res.items||[]).sort(function(a,b){
+      return a.storBin.localeCompare(b.storBin, undefined, {numeric:true});
+    });
+    state.items = mergeDuplicateRows(sorted);
+    renderList(true);
+  });
+}
+
+/**
+ * Combine rows that share the same Material + Batch + Stor.Bin into a
+ * single display line with summed Qty. Keeps every underlying sheet
+ * rowKey so toggling the merged line updates all of them together.
+ */
+function mergeDuplicateRows(items){
+  var map = {};
+  var order = [];
+  items.forEach(function(it){
+    var key = it.material+'|'+it.batch+'|'+it.storBin;
+    if (!map[key]) {
+      map[key] = Object.assign({}, it, {qty:0, rowKeys:[], allDone:true});
+      order.push(key);
+    }
+    map[key].qty += Number(it.qty) || 0;
+    map[key].rowKeys.push(it.rowKey);
+    if (it.status !== 'หยิบแล้ว') map[key].allDone = false;
+  });
+  return order.map(function(k){
+    var g = map[k];
+    g.status = g.allDone ? 'หยิบแล้ว' : 'ยังไม่หยิบ';
+    delete g.allDone;
+    return g;
+  });
+}
+
+function renderList(isInitialRender){
+  var items = state.items;
+  var picked = items.filter(i=>i.status==='หยิบแล้ว').length;
+  document.getElementById('listCount').textContent = picked+'/'+items.length;
+  document.getElementById('listFill').style.width = items.length ? Math.round(picked/items.length*100)+'%' : '0%';
+
+  var nextIndex = items.findIndex(i=>i.status!=='หยิบแล้ว');
+
+  if (items.length === 0) {
+    document.getElementById('listItems').innerHTML = '<div class="empty-state"><i class="ti ti-package-off"></i><h3>ไม่มีรายการในโซนนี้</h3></div>';
+    return;
+  }
+
+  var doneBanner = '';
+  if (nextIndex === -1) {
+    doneBanner = '<div class="done-banner"><i class="ti ti-circle-check"></i><div><div class="done-banner-title">หยิบครบแล้ว '+items.length+'/'+items.length+'</div><div class="done-banner-sub">กดย้อนกลับเพื่อเลือกงานถัดไป</div></div></div>';
+  }
+
+  var html = items.map(function(item, idx){
+    var checked = item.status === 'หยิบแล้ว';
+    var isNext = idx === nextIndex && !checked;
+    var rowClass = 'item-row' + (checked ? ' checked' : '') + (isNext ? ' next' : '');
+    var iconClass = checked ? 'ti-check' : 'ti-box';
+    var mergeBadge = item.rowKeys.length > 1 ? ' <span class="merge-badge">รวม '+item.rowKeys.length+' แถว</span>' : '';
+    return '<div class="'+rowClass+'" '+(isNext?'id="nextItemRow"':'')+' onclick="toggleItemRow('+idx+')">'+
+      '<div class="item-icon"><i class="ti '+iconClass+'"></i></div>'+
+      '<div style="flex:1; min-width:0;">'+
+        '<div class="item-title'+(isNext?' accent':'')+'">'+item.storBin+mergeBadge+'</div>'+
+        '<div class="item-material-line"><span class="item-material-label">Material</span>'+item.material+'</div>'+
+        '<div class="item-desc">'+item.materialDesc+'</div>'+
+        '<div class="item-batch"><i class="ti ti-barcode"></i> <span class="item-batch-label">Batch</span>'+item.batch+'</div>'+
+        (item.qtyPerPallet > 0 ? '<div class="item-pallet-line"><i class="ti ti-stack-2"></i> '+formatPallet(item.qty, item.qtyPerPallet)+'</div>' : '')+
+        '<div class="item-qty-line"><i class="ti ti-box"></i> <span class="item-qty-label">รวม</span>'+item.qty+' '+displayUom(item.uom)+'</div>'+
+        '<div class="item-sub">'+item.dest+'</div>'+
+      '</div>'+
+      '<div class="item-right">'+
+        '<div class="item-door-badge"><i class="ti ti-door"></i> '+item.door+'</div>'+
+      '</div>'+
+      '<input type="checkbox" '+(checked?'checked':'')+' style="pointer-events:none;">'+
+    '</div>';
+  }).join('');
+  document.getElementById('listItems').innerHTML = doneBanner + html;
+
+  if (isInitialRender && !state.scrolledThisVisit) {
+    var nextRow = document.getElementById('nextItemRow');
+    if (nextRow) {
+      nextRow.scrollIntoView({block:'center'});
+      state.scrolledThisVisit = true;
+    }
+  }
+}
+
+var toastTimer = null;
+function toggleItemRow(idx){
+  var item = state.items[idx];
+  if (!item) return;
+  var newChecked = item.status !== 'หยิบแล้ว';
+  toggleItem(idx, newChecked);
+}
+
+function toggleItem(idx, isChecked){
+  var item = state.items[idx];
+  if (!item) return;
+  var prevStatus = item.status;
+  item.status = isChecked ? 'หยิบแล้ว' : 'ยังไม่หยิบ';
+  renderList();
+
+  var pickerName = document.getElementById('workerName').value;
+  apiPost({action:'updatePickStatusBulk', rowKeys:item.rowKeys, status:item.status, pickedBy:pickerName});
+
+  if (isChecked) {
+    state.lastAction = {idx:idx, prevStatus:prevStatus};
+    showToast('หยิบแล้ว: '+item.storBin);
+  }
+}
+
+function undoLast(){
+  if (!state.lastAction) return;
+  var item = state.items[state.lastAction.idx];
+  if (item) {
+    item.status = state.lastAction.prevStatus;
+    apiPost({action:'updatePickStatusBulk', rowKeys:item.rowKeys, status:item.status, pickedBy:''});
+    renderList();
+  }
+  hideToast();
+}
+
+function showToast(text, showUndo, icon){
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastUndoBtn').style.display = (showUndo === false) ? 'none' : 'inline-block';
+  var defaultIcon = (showUndo === false) ? 'ti-info-circle' : 'ti-circle-check';
+  document.getElementById('toastIcon').className = 'ti ' + (icon || defaultIcon);
+  var toast = document.getElementById('toast');
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 3000);
+}
+function hideToast(){
+  document.getElementById('toast').classList.remove('show');
+}
+
+function formatDateLabel(dateStr){
+  var d = new Date(dateStr);
+  return d.toLocaleDateString('th-TH', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+function formatPallet(qty, qtyPerPallet){
+  qty = Number(qty) || 0;
+  qtyPerPallet = Number(qtyPerPallet) || 0;
+  if (qtyPerPallet <= 0) return '';
+  var pallets = Math.floor(qty / qtyPerPallet);
+  var remainder = qty - (pallets * qtyPerPallet);
+  var parts = [];
+  parts.push(pallets > 0
+    ? '<span class="pallet-count">'+pallets+' พาเลท</span>'
+    : '<span class="pallet-count dash">- พาเลท</span>');
+  if (remainder > 0 || pallets === 0) parts.push('<span class="pallet-remainder">เศษ '+remainder+' กล่อง</span>');
+  return parts.join(' ');
+}
+
+function displayUom(uom){
+  if (!uom) return '';
+  return String(uom).trim().toUpperCase() === 'CV' ? 'กล่อง' : uom;
+}
+</script>
+</body>
+</html>
